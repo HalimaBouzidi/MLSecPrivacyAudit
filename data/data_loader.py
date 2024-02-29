@@ -8,6 +8,21 @@ from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder
 
 from data_transform import get_data_transform
 
+
+def build_datasets(args):
+    if args.dataset == 'IMAGENET':
+        return build_default_imagenet_dataset(args)
+    elif args.dataset == 'TINY-IMAGENET':
+        return build_default_tiny_imagenet_dataset(args)
+    elif args.dataset == 'MNIST':
+        return build_default_MNIST_dataset(args)
+    elif args.dataset == 'CIFAR10':
+        return build_default_CIFAR10_dataset(args)
+    elif args.dataset == 'CIFAR100':
+        return build_default_CIFAR100_dataset(args)
+    else:
+        raise NotImplementedError
+
 def build_data_loader(args):
     if args.dataset == 'IMAGENET':
         return build_default_imagenet_data_loader(args)
@@ -22,7 +37,7 @@ def build_data_loader(args):
     else:
         raise NotImplementedError
 
-def build_default_MNIST_data_loader(args):
+def build_default_MNIST_dataset(args):
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -31,6 +46,12 @@ def build_default_MNIST_data_loader(args):
 
     train_dataset = MNIST(root=args.dataset_dir, train=True, download=True, transform=transform)
     val_dataset = MNIST(root=args.dataset_dir, train=False, download=True, transform=transform)
+
+    return train_dataset, val_dataset
+
+def build_default_MNIST_data_loader(args):
+
+    train_dataset, val_dataset = build_default_MNIST_dataset(args)
 
     if args.distributed == 'True':
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -67,7 +88,8 @@ def build_default_MNIST_data_loader(args):
 
     return train_loader, val_loader, train_sampler
 
-def build_default_CIFAR10_data_loader(args):
+def build_default_CIFAR10_dataset(args):
+    
     train_transforms = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -87,6 +109,12 @@ def build_default_CIFAR10_data_loader(args):
     val_dataset = CIFAR10(root=args.dataset_dir, train=False,
                                         download=True, transform=non_train_transforms)
 
+    return train_dataset, val_dataset
+
+def build_default_CIFAR10_data_loader(args):
+
+    train_dataset, val_dataset = build_default_CIFAR10_dataset(args)
+
     if args.distributed == 'True':
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
@@ -122,7 +150,7 @@ def build_default_CIFAR10_data_loader(args):
 
     return train_loader, val_loader, train_sampler
 
-def build_default_CIFAR100_data_loader(args):
+def build_default_CIFAR100_dataset(args):
     train_transforms = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -142,6 +170,12 @@ def build_default_CIFAR100_data_loader(args):
     val_dataset = CIFAR100(root=args.dataset_dir, train=False,
                                         download=True, transform=non_train_transforms)
 
+    return train_dataset, val_dataset
+
+def build_default_CIFAR100_data_loader(args):
+    
+    train_dataset, val_dataset = build_default_CIFAR100_dataset(args)
+
     if args.distributed == 'True':
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
@@ -177,7 +211,7 @@ def build_default_CIFAR100_data_loader(args):
 
     return train_loader, val_loader, train_sampler
 
-def build_default_imagenet_data_loader(args):
+def build_default_imagenet_dataset(args):
     traindir = os.path.join(args.dataset_dir, "train")
     valdir = os.path.join(args.dataset_dir, "val")
 
@@ -185,10 +219,14 @@ def build_default_imagenet_data_loader(args):
     train_transform = get_data_transform(args, is_training=True, augment=args.augment)
     test_transform = get_data_transform(args, is_training=False, augment=args.augment)
 
-    #build datasets
-    if not getattr(args, 'data_loader_cross_validation', False):
-        train_dataset = ImageFolder(traindir, train_transform)
-        val_dataset = ImageFolder(valdir, test_transform)
+    train_dataset = ImageFolder(traindir, train_transform)
+    val_dataset = ImageFolder(valdir, test_transform)
+
+    return train_dataset, val_dataset
+
+def build_default_imagenet_data_loader(args):
+    
+    train_dataset, val_dataset = build_default_imagenet_data_loader(args)
 
     if args.distributed == 'True':
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -225,7 +263,7 @@ def build_default_imagenet_data_loader(args):
 
     return train_loader, val_loader, train_sampler
 
-def build_default_tiny_imagenet_data_loader(args):
+def build_default_tiny_imagenet_dataset(args):
     traindir = os.path.join(args.dataset_dir, "train")
     valdir = os.path.join(args.dataset_dir, "val")      
 
@@ -235,6 +273,12 @@ def build_default_tiny_imagenet_data_loader(args):
     train_dataset = ImageFolder(traindir, train_transform)
     val_dataset = ImageFolder(valdir, test_transform)
 
+    return train_dataset, val_dataset 
+
+def build_default_tiny_imagenet_data_loader(args):
+    
+    train_dataset, val_dataset = build_default_tiny_imagenet_dataset(args)
+
     if args.distributed == 'True':
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
@@ -243,7 +287,7 @@ def build_default_tiny_imagenet_data_loader(args):
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=(train_sampler is None),        # edit
+        shuffle=(train_sampler is None),      
         sampler=train_sampler,
         drop_last = True,
         num_workers=args.data_loader_workers_per_gpu,
@@ -268,8 +312,7 @@ def build_default_tiny_imagenet_data_loader(args):
         sampler=val_sampler,
     )
 
-    return train_loader, val_loader, train_sampler 
-
+    return train_loader, val_loader, train_sampler
 
 if __name__ == '__main__':
 
