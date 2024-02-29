@@ -13,8 +13,7 @@ attack:
 
 data:
   dataset: CIFAR10 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
-  dataset_dir: ./datasets/tiny-imagenet 
-  batch_size: 64
+  dataset_dir: /home/erastus/Desktop/Postdoc_projects/datasets/cifar10
   data_loader_workers_per_gpu: 4
   distributed: False
   augment: auto_augment_tf
@@ -25,3 +24,7 @@ train:
   optimizer: sgd 
   learning_rate: 0.001 
   weight_decay: 0.0001 
+
+run: 
+  random_seed: 1234 
+  log_dir: demo_models 

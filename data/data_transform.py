@@ -3,11 +3,6 @@ from PIL import Image
 import numpy as np
 import torchvision.transforms as transforms
 
-from .auto_augment_tf import (
-    auto_augment_policy,
-    AutoAugment,
-)
-
 IMAGENET_PIXEL_MEAN = [123.675, 116.280, 103.530] 
 IMAGENET_PIXEL_STD = [58.395, 57.12, 57.375]
 
