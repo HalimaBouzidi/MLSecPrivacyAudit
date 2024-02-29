@@ -3,26 +3,40 @@ import os, random
 import csv, torch, yaml
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
 
 from data.data_loader import build_datasets
 from models.models import get_model
 from attacks.member_inference import population_attack, reference_attack, shadow_attack
 from attacks.utils import train, test
 
-TF_ENABLE_ONEDNN_OPTS=0
+def set_seed(seed_value):
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    torch.cuda.manual_seed(seed_value)
+    torch.cuda.manual_seed_all(seed_value)
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--cf", type=str, default="./configs/population_evaluate.yaml", help="Yaml file which contains the configurations")
-    parser.add_argument("--seed", type=int, default=0, help="Random seed for the experiments")
 
-    # Load the parameters
     args = parser.parse_args()
     with open(args.cf, "rb") as f:
         configs = yaml.load(f, Loader=yaml.Loader)
 
+    seed_value = configs['run']['seed']
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     print('\n ************************************************************************************************ \n')
 
     train_dataset, val_dataset = build_datasets(configs)
+
+    model = get_model(configs)
+    model.to(device)
+
+    print(model)
+
+    model(torch.rand(1, 3, 32, 32).to(device))
 

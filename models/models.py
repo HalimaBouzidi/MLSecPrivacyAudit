@@ -22,7 +22,7 @@ class SimpleCNN(nn.Module):
         )
 
         self.classifier = nn.Sequential(
-            nn.Linear(int(48 * 48 * width_multi), base_ch*2),
+            nn.Linear(int(32 * 32 * width_multi), base_ch*2),
             nn.ReLU(),
             nn.Linear(base_ch*2, num_classes)
         )
@@ -109,7 +109,7 @@ class TransformerModel(nn.Module):
     def __init__(self, in_channels=3, num_classes=10, width_multi=1.0, depth=12):
         super(TransformerModel, self).__init__()        
         width = int(64*width_multi)
-        self.transformer = models.VisionTransformer(image_size=48, patch_size=4, num_layers=depth, \
+        self.transformer = models.VisionTransformer(image_size=32, patch_size=4, num_layers=depth, \
                                 hidden_dim=width, mlp_dim=width, num_heads=8, num_classes=num_classes)
         self.transformer.conv_proj = nn.Conv2d(in_channels, width, kernel_size=(4, 4), stride=(4, 4))
 
@@ -117,15 +117,15 @@ class TransformerModel(nn.Module):
         return self.transformer(x)
     
 
-def get_model(args, model_name):
+def get_model(args):
 
-    if model_name == "cnn":
-        return SimpleCNN(num_classes=args.num_classes)
-    elif model_name == "alexnet":
-        return AlexNet(num_classes=args.num_classes)
-    elif model_name == "transformer":
-        return TransformerModel(num_classes=args.num_classes)
-    elif model_name == "mobilenet":
-        return MobileNetV2(num_classes=args.num_classes)
+    if args['train']['model_name'] == "cnn":
+        return SimpleCNN(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], width_multi=args['train']['width_multi'])
+    elif args['train']['model_name'] == "alexnet":
+        return AlexNet(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], width_multi=args['train']['width_multi'])
+    elif args['train']['model_name'] == "transformer":
+        return TransformerModel(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], width_multi=args['train']['width_multi'])
+    elif args['train']['model_name'] == "mobilenet":
+        return MobileNetV2(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], width_multi=args['train']['width_multi'])
     else:
-        raise NotImplementedError(f"{model_name} is not implemented")
+        raise NotImplementedError(f"{args['train']['model_name']} is not implemented")
