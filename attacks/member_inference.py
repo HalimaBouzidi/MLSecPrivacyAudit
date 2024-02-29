@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torchvision 
 import numpy as np
-from utils import train, test
 
 from opacus.validators import ModuleValidator
 from privacy_meter.model import PytorchModelTensor
@@ -17,9 +16,15 @@ from privacy_meter.hypothesis_test import threshold_func, linear_itp_threshold_f
 from privacy_meter.constants import InferenceGame
 from privacy_meter.dataset import Dataset
 from privacy_meter.information_source import InformationSource
-from privacy_meter.model import PytorchModel, PytorchModelTensor
+from privacy_meter.model import PytorchModelTensor
 from torch.utils.data import TensorDataset
 
+signals = {'loss': ModelLoss(), 'gradient': ModelGradientNorm(), 'logits': ModelLogits(), 'scaled_logits': ModelNegativeRescaledLogits()}
+
+infer_games = {'privacy_loss_model': InferenceGame.PRIVACY_LOSS_MODEL}
+
+hypo_tests = {'direct': threshold_func, 'linear_itp': linear_itp_threshold_func, 'logit_rescale': logit_rescale_threshold_func, \
+              'gaussian': gaussian_threshold_func, 'min_linear_gaussian': min_linear_logit_threshold_func}
 
 def prepare_dataset_population(train_dataset, test_dataset, train_size, test_size, population_size):
     
@@ -56,7 +61,7 @@ def prepare_dataset_shadow(train_dataset, test_dataset, num_reference_models, sp
 
     return datasets_list
 
-def get_dataset_subset(dataset: torchvision.datasets, index: List(int)):
+def get_dataset_subset(dataset: torchvision.datasets, index):
     assert max(index) < len(dataset) and min(index) >= 0
     data = (torch.from_numpy(dataset.data[index]).float().permute(0, 3, 1, 2) / 255) 
     targets = list(np.array(dataset.targets)[index])
@@ -83,7 +88,7 @@ def get_subset_dataloader(args, train_dataset, train_index, test_index):
     
     train_loader = torch.utils.data.DataLoader(
             torch.utils.data.Subset(train_dataset,train_index),
-            batch_size=args.batch_size,
+            batch_size=args.data.batch_size,
             shuffle=True,
             num_workers=args.data_loader_workers_per_gpu,
             pin_memory=True,
@@ -92,7 +97,7 @@ def get_subset_dataloader(args, train_dataset, train_index, test_index):
     
     test_loader = torch.utils.data.DataLoader(
             torch.utils.data.Subset(train_dataset,test_index),
-            batch_size=args.batch_size,
+            batch_size=args.data.batch_size,
             shuffle=True,
             num_workers=args.data_loader_workers_per_gpu,
             pin_memory=True,
@@ -105,7 +110,7 @@ def get_full_dataloader(args, train_dataset, test_dataset):
     
     train_loader = torch.utils.data.DataLoader(
             train_dataset,
-            batch_size=args.batch_size,
+            batch_size=args.data.batch_size,
             shuffle=True,
             num_workers=args.data_loader_workers_per_gpu,
             pin_memory=True,
@@ -114,7 +119,7 @@ def get_full_dataloader(args, train_dataset, test_dataset):
     
     test_loader = torch.utils.data.DataLoader(
             test_dataset,
-            batch_size=args.batch_size,
+            batch_size=args.data.batch_size,
             shuffle=True,
             num_workers=args.data_loader_workers_per_gpu,
             pin_memory=True,
@@ -124,11 +129,9 @@ def get_full_dataloader(args, train_dataset, test_dataset):
     return train_loader, test_loader
 
 
-def population_attack(args, model, train_dataset, test_dataset, train_size, test_size, population_size, device):
+def population_attack(args, model, train_dataset, test_dataset, device):
     
-    train_size = 5000
-    test_size = 5000
-    population_size = 10000
+    train_size, test_size, population_size = args.attack.train_size, args.attack.test_size, args.attack.population_size
 
     train_dataset, test_dataset, all_index, train_index, test_index, population_index = \
                    prepare_dataset_population(train_dataset, test_dataset, train_size, test_size, population_size)
@@ -136,7 +139,7 @@ def population_attack(args, model, train_dataset, test_dataset, train_size, test
     train_loader, test_loader = get_subset_dataloader(args, train_dataset, train_index, test_index)
     
     criterion = nn.CrossEntropyLoss()
-    model = train(model, args.train_epochs, args.optimizer, criterion, train_loader, test_loader, len(train_index), len(test_index), device)
+    model = train(model, args.train.epochs, args.train.optimizer, criterion, train_loader, test_loader, len(train_index), len(test_index), device)
     test_loss, test_accuracy = test(model, test_loader, len(test_index), device, criterion)
     
     ModuleValidator.fix(model)
@@ -145,34 +148,25 @@ def population_attack(args, model, train_dataset, test_dataset, train_size, test
 
     target_info_source = InformationSource(models=[target_model], datasets=[target_dataset])
     reference_info_source = InformationSource(models=[target_model], datasets=[audit_dataset])
-
-    audit_results = {}
     
-    signals = {'loss': ModelLoss(), 'gradient': ModelGradientNorm(), 'logits': ModelLogits(), 'scaled_logits': ModelNegativeRescaledLogits()}
-
-    hypo_tests = {'direct': threshold_func, 'linear_itp': linear_itp_threshold_func, 'logit_rescale': logit_rescale_threshold_func, \
-                 'gaussian': gaussian_threshold_func, 'min_linear_gaussian': min_linear_logit_threshold_func}
-
-    for key, signal in signals.items():
-
-        metric = PopulationMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
-                                  signals=[signal], hypothesis_test_func=hypo_tests['direct'])
-        
-        audit_obj = Audit(metrics=metric, inference_game_type=InferenceGame.PRIVACY_LOSS_MODEL, target_info_sources=target_info_source,
-                          reference_info_sources=reference_info_source)
-        
-        audit_obj.prepare()
-        audit_results[key] = audit_obj.run()[0]
+    metric = PopulationMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
+                              signals=[args.attack.signal], hypothesis_test_func=hypo_tests[args.attack.hypo_test])
+    
+    audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args.attack.privacy_game], target_info_sources=target_info_source,
+                      reference_info_sources=reference_info_source)
+    
+    audit_obj.prepare()
+    audit_results = audit_obj.run()[0]
 
     return audit_results
     
         
-def reference_attack(args, model, train_dataset, test_dataset, ref_models, train_split, test_split, fpr_list, device):
+def reference_attack(args, model, train_dataset, test_dataset, device):
     
-    ref_models, train_split, test_split = 10, 5000, 1000
+    n_ref_models, train_split, test_split = args.attack.n_ref_models, args.attack.train_size, args.attack.test_size
     fpr_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    datasets_list = prepare_dataset_reference(train_dataset, test_dataset, ref_models, train_split, test_split)
+    datasets_list = prepare_dataset_reference(train_dataset, test_dataset, n_ref_models, train_split, test_split)
 
     train_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('train', '<default_input>')), \
                               torch.Tensor(datasets_list[0].get_feature('train', '<default_output>')))
@@ -184,13 +178,13 @@ def reference_attack(args, model, train_dataset, test_dataset, ref_models, train
     
 
     criterion = nn.CrossEntropyLoss()
-    model, accuracy = train(model, args.train_epochs, args.optimizer, criterion, train_loader, test_loader, train_split, test_split, device)
+    model = train(model, args.train.epochs, args.train.optimizer, criterion, train_loader, test_loader, train_split, test_split, device)
     
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=10)
 
     reference_models = []
-    for model_idx in range(ref_models):
+    for model_idx in range(n_ref_models):
         reference_model = model.deep_copy()
         ref_train_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')), \
                               torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_output>')))
@@ -200,36 +194,27 @@ def reference_attack(args, model, train_dataset, test_dataset, ref_models, train
         
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
-        reference_model, accuracy = train(model, args.train_epochs, args.optimizer, criterion, ref_train_loader, ref_test_loader, train_split, test_split, device)
+        reference_model = train(model, args.train.epochs, args.train.optimizer, criterion, ref_train_loader, ref_test_loader, train_split, test_split, device)
         reference_models.append(PytorchModelTensor(model_obj=reference_model, loss_fn=criterion))
 
     target_info_source = InformationSource(models=[target_model], datasets=[datasets_list[0]])
     reference_info_source = InformationSource(models=reference_models, datasets=[datasets_list[0]])
-
-    audit_results = {}
     
-    signals = {'loss': ModelLoss(), 'gradient': ModelGradientNorm(), 'logits': ModelLogits(), 'scaled_logits': ModelNegativeRescaledLogits()}
-
-    hypo_tests = {'direct': threshold_func, 'linear_itp': linear_itp_threshold_func, 'logit_rescale': logit_rescale_threshold_func, \
-                 'gaussian': gaussian_threshold_func, 'min_linear_gaussian': min_linear_logit_threshold_func}
-
-    for key, signal in signals.items():
-
-        metric = ReferenceMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
-                                  signals=[signal], hypothesis_test_func=hypo_tests['direct'])
-        
-        audit_obj = Audit(metrics=metric, inference_game_type=InferenceGame.PRIVACY_LOSS_MODEL, target_info_sources=target_info_source,
-                          reference_info_sources=reference_info_source, fpr_tolerances=fpr_list)
-        
-        audit_obj.prepare()
-        audit_results[key] = audit_obj.run()[0]
+    metric = ReferenceMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
+                             signals=[signals[args.attack.signal]], hypothesis_test_func=hypo_tests[args.attack.hypo_test])
+    
+    audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args.attack.privacy_game], target_info_sources=target_info_source,
+                      reference_info_sources=reference_info_source, fpr_tolerances=fpr_list)
+    
+    audit_obj.prepare()
+    audit_results = audit_obj.run()[0]
 
     return audit_results
 
 
-def shadow_attack(args, model, n_shadow_models, train_dataset, test_dataset, split_size, device):
+def shadow_attack(args, model, train_dataset, test_dataset, device):
     
-    n_shadow_models, split_size = 10, 10000
+    n_shadow_models, split_size = args.attack.n_shadow_models, args.attack.split_size
     shadow_models = [model.deep_copy() for _ in range(n_shadow_models)] 
     
     dataset, datasets_list = prepare_dataset_shadow(train_dataset, test_dataset, shadow_models, split_size)
@@ -246,29 +231,19 @@ def shadow_attack(args, model, n_shadow_models, train_dataset, test_dataset, spl
 
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
-        shadow_model, accuracy = train(shadow_models[model_idx], args.train_epochs, args.optimizer, criterion, ref_train_loader, ref_test_loader, split_size, split_size, device)
+        shadow_model = train(shadow_models[model_idx], args.train.epochs, args.train.optimizer, criterion, ref_train_loader, ref_test_loader, split_size, split_size, device)
         shadow_models[model_idx].append(PytorchModelTensor(model_obj=shadow_model, loss_fn=criterion))
 
     target_info_source = InformationSource(models=[shadow_models[0]], datasets=[datasets_list[0]])
     
     reference_info_source = InformationSource(models=shadow_models[1:], datasets=datasets_list[1:])
-
-    audit_results = {}
     
-    signals = {'loss': ModelLoss(), 'gradient': ModelGradientNorm(), 'logits': ModelLogits(), 'scaled_logits': ModelNegativeRescaledLogits()}
-
-    hypo_tests = {'direct': threshold_func, 'linear_itp': linear_itp_threshold_func, 'logit_rescale': logit_rescale_threshold_func, \
-                 'gaussian': gaussian_threshold_func, 'min_linear_gaussian': min_linear_logit_threshold_func}
-
-    for key, signal in signals.items():
-        
-        metric = ShadowMetric(target_info_source=target_info_source, reference_info_source=reference_info_source, signals=[signal], \
-                              hypothesis_test_func=hypo_tests['direct'], unique_dataset=False, reweight_samples=True)
-        
-        audit_obj = Audit(metrics=metric, inference_game_type=InferenceGame.PRIVACY_LOSS_MODEL, target_info_sources=target_info_source,
-                          reference_info_sources=reference_info_source)
-        
-        audit_obj.prepare()
-        audit_results[key] = audit_obj.run()[0]
+    metric = ShadowMetric(target_info_source=target_info_source, reference_info_source=reference_info_source, signals=[args.attack.signal], \
+                          hypothesis_test_func=hypo_tests[args.attack.hypo_test], unique_dataset=False, reweight_samples=True)
+    
+    audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args.attack.privacy_game], target_info_sources=target_info_source,
+                      reference_info_sources=reference_info_source)
+    
+    audit_results = audit_obj.prepare()
 
     return audit_results

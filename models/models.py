@@ -1,7 +1,6 @@
 import torch.nn.functional as F
 from torch import nn
 from torchvision import models
-from layers import InvertedResidual, conv_1x1_bn, conv_bn
 
 class SimpleCNN(nn.Module):
     def __init__(self, in_channels=3, num_classes=10, width_multi=1.0):
@@ -120,7 +119,7 @@ class TransformerModel(nn.Module):
 
 def get_model(args, model_name):
 
-    if model_name == "simple":
+    if model_name == "cnn":
         return SimpleCNN(num_classes=args.num_classes)
     elif model_name == "alexnet":
         return AlexNet(num_classes=args.num_classes)

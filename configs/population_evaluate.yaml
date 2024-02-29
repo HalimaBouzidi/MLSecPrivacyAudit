@@ -1,0 +1,27 @@
+attack:
+  algorithm: population # choices: [population, reference, shadow]
+  privacy_game: privacy_loss_model # choices: [privacy_loss_model, avg_privacy_loss_training_algo, privacy_loss_sample]
+  signal: loss # choices: [loss, gradient, logits, scaled_logits]
+  hypo_test: 'direct' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
+  train_size: 5000 # for population and reference attacks
+  test_size: 5000 # for population and reference attacks
+  population_size: 10000 # for population attack
+  split_size: 10000 # for shadow attack
+  n_shadow_models: 10 # for shadow attack
+  n_ref_models: 10 # for shadow attack
+
+
+data:
+  dataset: CIFAR10 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
+  dataset_dir: ./datasets/tiny-imagenet 
+  batch_size: 64
+  data_loader_workers_per_gpu: 4
+  distributed: False
+  augment: auto_augment_tf
+
+train:
+  model_name: cnn # choices: [cnn, alexnet, transformer, mobilenet]
+  epochs: 100
+  optimizer: sgd 
+  learning_rate: 0.001 
+  weight_decay: 0.0001 
