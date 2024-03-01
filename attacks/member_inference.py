@@ -19,6 +19,8 @@ from privacy_meter.information_source import InformationSource
 from privacy_meter.model import PytorchModelTensor
 from torch.utils.data import TensorDataset
 
+from .utils import train, test
+
 signals = {'loss': ModelLoss(), 'gradient': ModelGradientNorm(), 'logits': ModelLogits(), 'scaled_logits': ModelNegativeRescaledLogits()}
 
 infer_games = {'privacy_loss_model': InferenceGame.PRIVACY_LOSS_MODEL}
@@ -150,17 +152,17 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     reference_info_source = InformationSource(models=[target_model], datasets=[audit_dataset])
     
     metric = PopulationMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
-                              signals=[args['attack']['signal']], hypothesis_test_func=hypo_tests[args['attack']['hypo_test']])
+                              signals=[signals[args['attack']['signal']]], hypothesis_test_func=hypo_tests[args['attack']['hypo_test']])
     
     audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args['attack']['privacy_game']], target_info_sources=target_info_source,
                       reference_info_sources=reference_info_source)
     
     audit_obj.prepare()
     audit_results = audit_obj.run()[0]
-
-    return audit_results
     
-        
+    return audit_results, test_accuracy
+    
+# This is the problem      
 def reference_attack(args, model, train_dataset, test_dataset, device):
     
     n_ref_models, train_split, test_split = args['attack']['n_ref_models'], args['attack']['train_size'], args['attack']['test_size']
@@ -176,6 +178,7 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     
     train_loader, test_loader = get_full_dataloader(args, train_set, test_set)
     
+    exit()
 
     criterion = nn.CrossEntropyLoss()
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device)
@@ -238,7 +241,7 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
     
     reference_info_source = InformationSource(models=shadow_models[1:], datasets=datasets_list[1:])
     
-    metric = ShadowMetric(target_info_source=target_info_source, reference_info_source=reference_info_source, signals=[args['attack']['signal']], \
+    metric = ShadowMetric(target_info_source=target_info_source, reference_info_source=reference_info_source, signals=[signals[args['attack']['signal']]], \
                           hypothesis_test_func=hypo_tests[args['attack']['hypo_test']], unique_dataset=False, reweight_samples=True)
     
     audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args['attack']['privacy_game']], target_info_sources=target_info_source,

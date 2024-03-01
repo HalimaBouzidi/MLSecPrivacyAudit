@@ -71,7 +71,7 @@ def test(model, test_loader, len_test, device, criterion=None):
     running_corrects = 0
 
     with torch.no_grad():
-        for images, _, classes in test_loader:
+        for images, classes in test_loader:
             images = images.to(device)
             classes = classes.to(device)
 

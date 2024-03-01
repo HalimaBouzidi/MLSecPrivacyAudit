@@ -29,14 +29,21 @@ if __name__ == '__main__':
     seed_value = configs['run']['seed']
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    print('\n ************************************************************************************************ \n')
+    print('\n ******************************** START of THE SCRIPT **************************************************** \n')
 
-    train_dataset, val_dataset = build_datasets(configs)
+    train_dataset, test_dataset = build_datasets(configs)
 
     model = get_model(configs)
     model.to(device)
 
-    print(model)
+    if configs['attack']['type'] == 'population':
+        audit_results, test_accuracy = population_attack(configs, model, train_dataset, test_dataset, device)
 
-    model(torch.rand(1, 3, 32, 32).to(device))
+    elif configs['attack']['type'] == 'reference':
+        reference_attack(configs, model, train_dataset, test_dataset, device)
 
+    elif configs['attack']['type'] == 'shadow':
+        shadow_attack(configs, model, train_dataset, test_dataset, device)
+
+    else:
+        raise NotImplementedError(f"{configs['attack']['type']} is not implemented")

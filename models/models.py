@@ -91,6 +91,7 @@ class MobileNetV2(nn.Module):
                 else:
                     layers.append(InvertedResidual(input_channel, output_channel, 1, expand_ratio=t))
                 input_channel = output_channel
+        
         output_channel = int(1280 * width_multi) if width_multi > 1.0 else 1280
         layers.append(conv_1x1_bn(input_channel, output_channel))
         self.features = nn.Sequential(*layers)

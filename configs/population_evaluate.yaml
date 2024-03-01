@@ -1,5 +1,5 @@
 attack:
-  algorithm: population # choices: [population, reference, shadow]
+  type: reference # choices: [population, reference, shadow]
   privacy_game: privacy_loss_model # choices: [privacy_loss_model, avg_privacy_loss_training_algo, privacy_loss_sample]
   signal: loss # choices: [loss, gradient, logits, scaled_logits]
   hypo_test: 'direct' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
@@ -16,6 +16,7 @@ data:
   in_channels: 3
   num_classes: 10
   dataset_dir: /home/erastus/Desktop/Postdoc_projects/datasets/cifar10
+  batch_size: 64
   data_loader_workers_per_gpu: 4
   distributed: False
   augment: auto_augment_tf
@@ -23,7 +24,7 @@ data:
 train:
   model_name: cnn # choices: [cnn, alexnet, transformer, mobilenet]
   width_multi: 1.0
-  epochs: 100
+  epochs: 10
   optimizer: sgd 
   learning_rate: 0.001 
   weight_decay: 0.0001 
