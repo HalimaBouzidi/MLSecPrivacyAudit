@@ -18,6 +18,7 @@ from privacy_meter.dataset import Dataset
 from privacy_meter.information_source import InformationSource
 from privacy_meter.model import PytorchModelTensor
 from torch.utils.data import TensorDataset
+import tensorflow as tf
 
 from .utils import train, test
 
@@ -43,15 +44,12 @@ def prepare_dataset_population(train_dataset, test_dataset, train_size, test_siz
 
     return train_dataset, test_dataset, all_index, train_index, test_index, population_index
 
-def prepare_dataset_reference(train_dataset, test_dataset, num_reference_models, train_split, test_split):
-    
-    dataset = Dataset(data_dict={'train': {'x': train_dataset.data, 'y': train_dataset.targets}, 
-                                 'test': {'x': test_dataset.data, 'y': test_dataset.targets}}, default_input='x',default_output='y')
+def prepare_dataset_reference(dataset, num_reference_models, train_split, test_split):
     
     datasets_list = dataset.subdivide(num_splits=num_reference_models + 1, delete_original=True, in_place=False, return_results=True, method='hybrid', 
                                       split_size={'train': train_split, 'test': test_split})
-
-    return dataset, datasets_list
+    
+    return datasets_list
 
 def prepare_dataset_shadow(train_dataset, test_dataset, num_reference_models, split_size):
     
@@ -69,6 +67,7 @@ def get_dataset_subset(dataset: torchvision.datasets, index):
     targets = list(np.array(dataset.targets)[index])
     targets = torch.tensor(targets, dtype=torch.long)
     return data, targets
+
 
 def get_target_audit_population(train_dataset, train_index, test_index, population_index):
     
@@ -95,6 +94,7 @@ def get_subset_dataloader(args, train_dataset, train_index, test_index):
             num_workers=args['data']['data_loader_workers_per_gpu'],
             pin_memory=True,
             persistent_workers=True,
+            drop_last = True,
             prefetch_factor=16)
     
     test_loader = torch.utils.data.DataLoader(
@@ -104,10 +104,28 @@ def get_subset_dataloader(args, train_dataset, train_index, test_index):
             num_workers=args['data']['data_loader_workers_per_gpu'],
             pin_memory=True,
             persistent_workers=True,
+            drop_last = True,
             prefetch_factor=16)
     
     return train_loader, test_loader
     
+def get_dataset_full(dataset: torchvision.datasets):
+    data = (torch.from_numpy(dataset.data).float().permute(0, 3, 1, 2) / 255) 
+    targets = list(np.array(dataset.targets))
+    targets = torch.tensor(targets, dtype=torch.long)
+    return data, targets
+
+def get_target_reference(train_dataset, test_dataset):
+    
+    train_data, train_targets = get_dataset_full(train_dataset)
+    test_data, test_targets = get_dataset_full(test_dataset)
+    
+    target_dataset = Dataset( data_dict={"train": {"x": train_data, "y": train_targets}, 
+                                         "test": {"x": test_data, "y": test_targets},},
+                                         default_input="x", default_output="y",)
+    
+    return target_dataset
+
 def get_full_dataloader(args, train_dataset, test_dataset):
     
     train_loader = torch.utils.data.DataLoader(
@@ -117,6 +135,7 @@ def get_full_dataloader(args, train_dataset, test_dataset):
             num_workers=args['data']['data_loader_workers_per_gpu'], 
             pin_memory=True,
             persistent_workers=True,
+            drop_last = True,
             prefetch_factor=16)
     
     test_loader = torch.utils.data.DataLoader(
@@ -126,6 +145,7 @@ def get_full_dataloader(args, train_dataset, test_dataset):
             num_workers=args['data']['data_loader_workers_per_gpu'],
             pin_memory=True,
             persistent_workers=True,
+            drop_last = True,
             prefetch_factor=16)
     
     return train_loader, test_loader
@@ -168,20 +188,28 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     n_ref_models, train_split, test_split = args['attack']['n_ref_models'], args['attack']['train_size'], args['attack']['test_size']
     fpr_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    datasets_list = prepare_dataset_reference(train_dataset, test_dataset, n_ref_models, train_split, test_split)
+    dataset = get_target_reference(train_dataset, test_dataset)
 
-    train_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('train', '<default_input>')), \
+    datasets_list = prepare_dataset_reference(dataset, n_ref_models, train_split, test_split)
+
+    exit()
+
+
+    train_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('train', '<default_input>')).transpose(-1, 1), \
                               torch.Tensor(datasets_list[0].get_feature('train', '<default_output>')))
     
-    test_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('train', '<default_input>')), \
+    test_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('train', '<default_input>')).transpose(-1, 1), \
                               torch.Tensor(datasets_list[0].get_feature('train', '<default_output>')))
     
     train_loader, test_loader = get_full_dataloader(args, train_set, test_set)
     
-    exit()
 
     criterion = nn.CrossEntropyLoss()
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device)
+    test_loss, test_accuracy = test(model, test_loader, test_split, device, criterion)
+    print('*******************', test_accuracy)
+
+    exit()
     
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=10)
@@ -189,7 +217,7 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     reference_models = []
     for model_idx in range(n_ref_models):
         reference_model = model.deep_copy()
-        ref_train_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')), \
+        ref_train_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')).transpose(-1, 1), \
                               torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_output>')))
     
         ref_test_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')), \

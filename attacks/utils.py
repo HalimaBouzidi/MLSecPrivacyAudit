@@ -20,7 +20,6 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
     else:
         raise NotImplementedError
 
-
     early_stopping = EarlyStopping(patience=20, verbose=False)
     for epoch in range(num_epochs):
         model.train()
@@ -84,6 +83,7 @@ def test(model, test_loader, len_test, device, criterion=None):
                 loss = 0
 
             running_loss += loss * images.size(0)
+            print('****************', preds.size(), classes.data.size())
             running_corrects += torch.sum(preds == classes.data).item()
 
     eval_accuracy = running_corrects / len_test
