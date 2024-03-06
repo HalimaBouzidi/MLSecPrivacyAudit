@@ -24,8 +24,8 @@ data:
 train:
   model_name: cnn # choices: [cnn, alexnet, transformer, mobilenet]
   width_multi: 1.0
-  epochs: 10
-  optimizer: sgd 
+  epochs: 100
+  optimizer: adam
   learning_rate: 0.001 
   weight_decay: 0.0001 
 

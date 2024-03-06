@@ -26,8 +26,10 @@ if __name__ == '__main__':
     with open(args.cf, "rb") as f:
         configs = yaml.load(f, Loader=yaml.Loader)
 
-    seed_value = configs['run']['seed']
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    seed_value = configs['run']['seed']
+    set_seed(seed_value)
 
     print('\n ******************************** START of THE SCRIPT **************************************************** \n')
 

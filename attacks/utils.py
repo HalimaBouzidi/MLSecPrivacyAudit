@@ -56,6 +56,7 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
         early_stopping(val_loss, model)
         
         if early_stopping.early_stop:
+            print("Early stopping at Epoch: {}".format(epoch))
             break
 
     return model
@@ -83,11 +84,10 @@ def test(model, test_loader, len_test, device, criterion=None):
                 loss = 0
 
             running_loss += loss * images.size(0)
-            print('****************', preds.size(), classes.data.size())
             running_corrects += torch.sum(preds == classes.data).item()
 
-    eval_accuracy = running_corrects / len_test
-    eval_loss = running_loss / len_test
+    eval_accuracy = running_corrects/len_test
+    eval_loss = running_loss/len_test
 
     return eval_loss, eval_accuracy
 
