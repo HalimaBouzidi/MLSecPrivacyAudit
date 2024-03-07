@@ -1,11 +1,11 @@
 attack:
   type: reference # choices: [population, reference, shadow]
   privacy_game: privacy_loss_model # choices: [privacy_loss_model, avg_privacy_loss_training_algo, privacy_loss_sample]
-  signal: loss # choices: [loss, gradient, logits, scaled_logits]
+  signal: scaled_logits # choices: [loss, gradient, logits, scaled_logits]
   hypo_test: 'linear_itp' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
   train_size: 5000 # for population and reference attacks
   test_size: 5000 # for population and reference attacks
-  n_ref_models: 5 # for shadow attack
+  n_ref_models: 10 # for shadow attack
   log_dir: '/home/erastus/Desktop/Postdoc_projects/MLSecPrivacyAudit/logs'
   test_name: 'arbitary_test'
 
@@ -22,7 +22,7 @@ data:
 train:
   model_name: cnn # choices: [cnn, alexnet, transformer, mobilenet]
   width_multi: 1.0
-  epochs: 10
+  epochs: 100
   optimizer: adam
   learning_rate: 0.001 
   weight_decay: 0.0001 

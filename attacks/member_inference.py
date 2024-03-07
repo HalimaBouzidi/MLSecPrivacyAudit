@@ -40,7 +40,8 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, len(train_index), len(test_index), device, path)
     test_loss, test_accuracy = test(model, test_loader, len(test_index), device, criterion)
-    
+    print('************ TEST ACCURACY: ', test_accuracy*100)
+
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
     target_dataset, audit_dataset = get_target_audit_population(train_dataset, train_index, test_index, population_index)
@@ -83,6 +84,7 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     orig_model = copy.deepcopy(model)
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device, path)
     test_loss, test_accuracy = test(model, test_loader, test_split, device, criterion)
+    print('************ TEST ACCURACY: ', test_accuracy)
     
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
@@ -147,6 +149,7 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
         
         if model_idx == 0:
             test_loss, test_accuracy = test(shadow_model, ref_test_loader, split_size, device, criterion)
+            print('************ TEST ACCURACY: ', test_accuracy)
         
         trained_shadow_models.append(PytorchModelTensor(model_obj=shadow_model, loss_fn=criterion))
 
