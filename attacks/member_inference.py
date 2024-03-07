@@ -19,6 +19,8 @@ from torch.utils.data import TensorDataset
 from .utils import train, test
 from .data_prep import *
 
+from privacy_meter.audit_report import ROCCurveReport
+
 signals = {'loss': ModelLoss(), 'gradient': ModelGradientNorm(), 'logits': ModelLogits(), 'scaled_logits': ModelNegativeRescaledLogits()}
 
 infer_games = {'privacy_loss_model': InferenceGame.PRIVACY_LOSS_MODEL}
@@ -55,8 +57,9 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     
     audit_obj.prepare()
     audit_results = audit_obj.run()[0]
+    infer_game = infer_games[args['attack']['privacy_game']]
     
-    return audit_results, test_accuracy
+    return audit_results, infer_game, test_accuracy
     
 # This is the problem      
 def reference_attack(args, model, train_dataset, test_dataset, device):
@@ -112,8 +115,9 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     
     audit_obj.prepare()
     audit_results = audit_obj.run()[0]
+    infer_game = infer_games[args['attack']['privacy_game']]
 
-    return audit_results, test_accuracy
+    return audit_results, infer_game, test_accuracy
 
 
 def shadow_attack(args, model, train_dataset, test_dataset, device):
@@ -160,5 +164,6 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
         
     audit_obj.prepare()
     audit_results = audit_obj.run()[0]
+    infer_game = infer_games[args['attack']['privacy_game']]
 
-    return audit_results, test_accuracy
+    return [[audit_results]], infer_game, test_accuracy
