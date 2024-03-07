@@ -1,4 +1,4 @@
-import torch
+import torch, copy
 import torch.nn as nn
 import torchvision 
 import numpy as np
@@ -30,8 +30,6 @@ hypo_tests = {'direct': threshold_func, 'linear_itp': linear_itp_threshold_func,
               'gaussian': gaussian_threshold_func, 'min_linear_gaussian': min_linear_logit_threshold_func}
 
 
-
-
 def population_attack(args, model, train_dataset, test_dataset, device):
     
     train_size, test_size, population_size = args['attack']['train_size'], args['attack']['test_size'], args['attack']['population_size']
@@ -44,13 +42,9 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     criterion = nn.CrossEntropyLoss()
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, len(train_index), len(test_index), device)
     test_loss, test_accuracy = test(model, test_loader, len(test_index), device, criterion)
-
-    print('*******************', test_accuracy)
-
-    exit()
     
     ModuleValidator.fix(model)
-    target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=10)
+    target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
     target_dataset, audit_dataset = get_target_audit_population(train_dataset, train_index, test_index, population_index)
 
     target_info_source = InformationSource(models=[target_model], datasets=[target_dataset])
@@ -59,8 +53,9 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     metric = PopulationMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
                               signals=[signals[args['attack']['signal']]], hypothesis_test_func=hypo_tests[args['attack']['hypo_test']])
     
+    log_dir = args['attack']['log_dir']+'/population_'+args['attack']['test_name']
     audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args['attack']['privacy_game']], target_info_sources=target_info_source,
-                      reference_info_sources=reference_info_source)
+                      reference_info_sources=reference_info_source, logs_directory_names= [log_dir, log_dir, log_dir])
     
     audit_obj.prepare()
     audit_results = audit_obj.run()[0]
@@ -71,7 +66,7 @@ def population_attack(args, model, train_dataset, test_dataset, device):
 def reference_attack(args, model, train_dataset, test_dataset, device):
     
     n_ref_models, train_split, test_split = args['attack']['n_ref_models'], args['attack']['train_size'], args['attack']['test_size']
-    fpr_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    fpr_list = [0.0, 0.1, 0.2, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     dataset = get_target_reference(train_dataset, test_dataset)
 
@@ -86,19 +81,17 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     train_loader, test_loader = get_full_dataloader(args, train_set, test_set)
     
     criterion = nn.CrossEntropyLoss()
+    orig_model = copy.deepcopy(model)
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device)
     test_loss, test_accuracy = test(model, test_loader, test_split, device, criterion)
-    print('*******************', test_accuracy)
-
-    exit()
     
     ModuleValidator.fix(model)
-    target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=10)
+    target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
 
     reference_models = []
     for model_idx in range(n_ref_models):
-        reference_model = model.deep_copy()
-        ref_train_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')).transpose(-1, 1), \
+        reference_model = copy.deepcopy(orig_model)
+        ref_train_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')), \
                               torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_output>')))
     
         ref_test_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')), \
@@ -106,22 +99,25 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
         
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
-        reference_model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, ref_train_loader, ref_test_loader, train_split, test_split, device)
+        reference_model = train(reference_model, args['train']['epochs'], args['train']['optimizer'], criterion, ref_train_loader, ref_test_loader, train_split, test_split, device)
         reference_models.append(PytorchModelTensor(model_obj=reference_model, loss_fn=criterion))
-
+        
     target_info_source = InformationSource(models=[target_model], datasets=[datasets_list[0]])
     reference_info_source = InformationSource(models=reference_models, datasets=[datasets_list[0]])
     
     metric = ReferenceMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
                              signals=[signals[args['attack']['signal']]], hypothesis_test_func=hypo_tests[args['attack']['hypo_test']])
+
+    log_dir = args['attack']['log_dir']+'/population_'+args['attack']['test_name']
+    
     
     audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args['attack']['privacy_game']], target_info_sources=target_info_source,
-                      reference_info_sources=reference_info_source, fpr_tolerances=fpr_list)
+                      reference_info_sources=reference_info_source, fpr_tolerances=fpr_list, logs_directory_names= [log_dir, log_dir, log_dir])
     
     audit_obj.prepare()
     audit_results = audit_obj.run()[0]
 
-    return audit_results
+    return audit_results, test_accuracy
 
 
 def shadow_attack(args, model, train_dataset, test_dataset, device):
