@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 import numpy as np
 from PIL import Image
 
-def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len_train, len_val, device):
+def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len_train, len_val, device, path):
     
     if optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(),
@@ -20,7 +20,7 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
     else:
         raise NotImplementedError
 
-    early_stopping = EarlyStopping(patience=20, verbose=False)
+    early_stopping = EarlyStopping(patience=20, verbose=False, path=path+'/checkpoint.pt')
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0

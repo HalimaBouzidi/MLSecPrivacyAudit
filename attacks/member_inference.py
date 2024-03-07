@@ -1,11 +1,8 @@
 import torch, copy
 import torch.nn as nn
-import torchvision 
-import numpy as np
 
 from opacus.validators import ModuleValidator
 from privacy_meter.model import PytorchModelTensor
-from privacy_meter.dataset import Dataset
 from privacy_meter.information_source import InformationSource
 
 from privacy_meter.audit import Audit
@@ -13,8 +10,8 @@ from privacy_meter.metric import PopulationMetric, ReferenceMetric, ShadowMetric
 from privacy_meter.information_source_signal import ModelGradientNorm, ModelLoss, ModelLogits, ModelNegativeRescaledLogits
 from privacy_meter.hypothesis_test import threshold_func, linear_itp_threshold_func, logit_rescale_threshold_func, \
                                           gaussian_threshold_func, min_linear_logit_threshold_func
+
 from privacy_meter.constants import InferenceGame
-from privacy_meter.dataset import Dataset
 from privacy_meter.information_source import InformationSource
 from privacy_meter.model import PytorchModelTensor
 from torch.utils.data import TensorDataset
@@ -29,7 +26,6 @@ infer_games = {'privacy_loss_model': InferenceGame.PRIVACY_LOSS_MODEL}
 hypo_tests = {'direct': threshold_func, 'linear_itp': linear_itp_threshold_func, 'logit_rescale': logit_rescale_threshold_func, \
               'gaussian': gaussian_threshold_func, 'min_linear_gaussian': min_linear_logit_threshold_func}
 
-
 def population_attack(args, model, train_dataset, test_dataset, device):
     
     train_size, test_size, population_size = args['attack']['train_size'], args['attack']['test_size'], args['attack']['population_size']
@@ -39,8 +35,8 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     
     train_loader, test_loader = get_subset_dataloader(args, train_dataset, train_index, test_index)
     
-    criterion = nn.CrossEntropyLoss()
-    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, len(train_index), len(test_index), device)
+    criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
+    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, len(train_index), len(test_index), device, path)
     test_loss, test_accuracy = test(model, test_loader, len(test_index), device, criterion)
     
     ModuleValidator.fix(model)
@@ -80,9 +76,9 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     
     train_loader, test_loader = get_full_dataloader(args, train_set, test_set)
     
-    criterion = nn.CrossEntropyLoss()
+    criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
     orig_model = copy.deepcopy(model)
-    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device)
+    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device, path)
     test_loss, test_accuracy = test(model, test_loader, test_split, device, criterion)
     
     ModuleValidator.fix(model)
@@ -99,7 +95,9 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
         
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
-        reference_model = train(reference_model, args['train']['epochs'], args['train']['optimizer'], criterion, ref_train_loader, ref_test_loader, train_split, test_split, device)
+        reference_model = train(reference_model, args['train']['epochs'], args['train']['optimizer'], criterion, \
+                                ref_train_loader, ref_test_loader, train_split, test_split, device, path)
+        
         reference_models.append(PytorchModelTensor(model_obj=reference_model, loss_fn=criterion))
         
     target_info_source = InformationSource(models=[target_model], datasets=[datasets_list[0]])
@@ -108,9 +106,7 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     metric = ReferenceMetric(target_info_source=target_info_source, reference_info_source=reference_info_source,
                              signals=[signals[args['attack']['signal']]], hypothesis_test_func=hypo_tests[args['attack']['hypo_test']])
 
-    log_dir = args['attack']['log_dir']+'/population_'+args['attack']['test_name']
-    
-    
+    log_dir = args['attack']['log_dir']+'/reference_'+args['attack']['test_name']
     audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args['attack']['privacy_game']], target_info_sources=target_info_source,
                       reference_info_sources=reference_info_source, fpr_tolerances=fpr_list, logs_directory_names= [log_dir, log_dir, log_dir])
     
@@ -121,13 +117,16 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
 
 
 def shadow_attack(args, model, train_dataset, test_dataset, device):
-    
+
     n_shadow_models, split_size = args['attack']['n_shadow_models'], args['attack']['split_size']
-    shadow_models = [model.deep_copy() for _ in range(n_shadow_models)] 
-    
-    dataset, datasets_list = prepare_dataset_shadow(train_dataset, test_dataset, shadow_models, split_size)
-    
-    criterion = nn.CrossEntropyLoss()
+    shadow_models = [copy.deepcopy(model) for _ in range(n_shadow_models)] 
+
+    dataset = get_target_reference(train_dataset, test_dataset)
+
+    datasets_list = prepare_dataset_shadow(dataset, n_shadow_models, split_size)
+        
+    criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
+    trained_shadow_models = []
     for model_idx in range(len(shadow_models)):
         x = dataset.get_feature(split_name=f'train{model_idx:03d}', feature_name='<default_input>')
         y = dataset.get_feature(split_name=f'train{model_idx:03d}', feature_name='<default_output>')
@@ -139,19 +138,27 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
 
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
-        shadow_model = train(shadow_models[model_idx], args['train']['epochs'], args['train']['optimizer'], criterion, ref_train_loader, ref_test_loader, split_size, split_size, device)
-        shadow_models[model_idx].append(PytorchModelTensor(model_obj=shadow_model, loss_fn=criterion))
+        shadow_model = train(shadow_models[model_idx], args['train']['epochs'], args['train']['optimizer'], \
+                             criterion, ref_train_loader, ref_test_loader, split_size, split_size, device, path)
+        
+        if model_idx == 0:
+            test_loss, test_accuracy = test(shadow_model, ref_test_loader, split_size, device, criterion)
+        
+        trained_shadow_models.append(PytorchModelTensor(model_obj=shadow_model, loss_fn=criterion))
 
-    target_info_source = InformationSource(models=[shadow_models[0]], datasets=[datasets_list[0]])
+
+    target_info_source = InformationSource(models=[trained_shadow_models[0]], datasets=[datasets_list[0]])
     
-    reference_info_source = InformationSource(models=shadow_models[1:], datasets=datasets_list[1:])
+    reference_info_source = InformationSource(models=trained_shadow_models[1:], datasets=datasets_list[1:])
     
     metric = ShadowMetric(target_info_source=target_info_source, reference_info_source=reference_info_source, signals=[signals[args['attack']['signal']]], \
                           hypothesis_test_func=hypo_tests[args['attack']['hypo_test']], unique_dataset=False, reweight_samples=True)
     
+    log_dir = args['attack']['log_dir']+'/shadow_'+args['attack']['test_name']
     audit_obj = Audit(metrics=metric, inference_game_type=infer_games[args['attack']['privacy_game']], target_info_sources=target_info_source,
-                      reference_info_sources=reference_info_source)
-    
-    audit_results = audit_obj.prepare()
+                      reference_info_sources=reference_info_source, logs_directory_names= [log_dir, log_dir, log_dir])
+        
+    audit_obj.prepare()
+    audit_results = audit_obj.run()[0]
 
-    return audit_results
+    return audit_results, test_accuracy

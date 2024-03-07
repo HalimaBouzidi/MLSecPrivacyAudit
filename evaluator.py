@@ -20,10 +20,12 @@ def set_seed(seed_value):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cf", type=str, default="./configs/population_evaluate.yaml", help="Yaml file which contains the configurations")
+    parser.add_argument("--attack", type=str, default="population", help="Type of MIA attack", choices=["population", "reference", "shadow"])
 
     args = parser.parse_args()
-    with open(args.cf, "rb") as f:
+    cf = "./configs/"+args.attack+"_attack_evaluate.yaml"
+    
+    with open(cf, "rb") as f:
         configs = yaml.load(f, Loader=yaml.Loader)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

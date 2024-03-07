@@ -5,13 +5,9 @@ attack:
   hypo_test: 'linear_itp' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
   train_size: 5000 # for population and reference attacks
   test_size: 5000 # for population and reference attacks
-  population_size: 10000 # for population attack
-  split_size: 10000 # for shadow attack
-  n_shadow_models: 10 # for shadow attack
   n_ref_models: 5 # for shadow attack
   log_dir: '/home/erastus/Desktop/Postdoc_projects/MLSecPrivacyAudit/logs'
   test_name: 'arbitary_test'
-
 
 data:
   dataset: CIFAR10 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
@@ -33,4 +29,4 @@ train:
 
 run: 
   seed: 1234 
-  log_dir: demo_models 
+  saved_models: ./saved_models

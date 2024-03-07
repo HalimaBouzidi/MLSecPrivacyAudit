@@ -25,13 +25,10 @@ def prepare_dataset_reference(dataset, num_reference_models, train_split, test_s
     
     return datasets_list
 
-def prepare_dataset_shadow(train_dataset, test_dataset, num_reference_models, split_size):
-    
-    dataset = Dataset(data_dict={'train': {'x': train_dataset.data, 'y': train_dataset.targets}, 
-                                 'test': {'x': test_dataset.data, 'y': test_dataset.targets}}, default_input='x',default_output='y')
-    
-    datasets_list = dataset.subdivide(num_splits=num_reference_models + 1, delete_original=True, in_place=False, return_results=True, method='hybrid', 
-                                      split_size=split_size)
+def prepare_dataset_shadow(dataset, n_shadow_models, split_size):
+
+    datasets_list = dataset.subdivide(num_splits=n_shadow_models + 1, delete_original=True, in_place=True, return_results=True,
+                                      method='hybrid', split_size=split_size)
 
     return datasets_list
 
