@@ -20,6 +20,9 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
     else:
         raise NotImplementedError
 
+
+    model.to(device)
+
     early_stopping = EarlyStopping(patience=20, verbose=False, path=path+'/checkpoint.pt')
     for epoch in range(num_epochs):
         model.train()

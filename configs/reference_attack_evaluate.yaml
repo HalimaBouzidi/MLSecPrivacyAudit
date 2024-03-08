@@ -5,26 +5,26 @@ attack:
   hypo_test: 'linear_itp' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
   train_size: 5000 # for population and reference attacks
   test_size: 5000 # for population and reference attacks
-  n_ref_models: 10 # for shadow attack
-  log_dir: '/home/erastus/Desktop/Postdoc_projects/MLSecPrivacyAudit/logs'
-  test_name: 'arbitary_test'
+  n_ref_models: 5 # for shadow attack
+  log_dir: '/home/hbouzidi/hbouzidi/MLSecPrivacyAudit/logs'
+  test_name: 'arbitary_test_4'
 
 data:
   dataset: CIFAR10 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
   in_channels: 3
   num_classes: 10
-  dataset_dir: /home/erastus/Desktop/Postdoc_projects/datasets/cifar10
+  dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-10
   batch_size: 64
   data_loader_workers_per_gpu: 4
   distributed: False
   augment: auto_augment_tf
 
 train:
-  model_name: cnn # choices: [cnn, alexnet, transformer, mobilenet]
+  model_name: transformer # choices: [cnn, alexnet, transformer, mobilenet]
   width_multi: 1.0
   epochs: 100
   optimizer: adam
-  learning_rate: 0.001 
+  learning_rate: 0.01 
   weight_decay: 0.0001 
 
 run: 

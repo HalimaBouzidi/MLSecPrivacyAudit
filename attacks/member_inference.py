@@ -40,7 +40,7 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, len(train_index), len(test_index), device, path)
     test_loss, test_accuracy = test(model, test_loader, len(test_index), device, criterion)
-    print('************ TEST ACCURACY: ', test_accuracy*100)
+    print('************ TEST ACCURACY: ', test_accuracy)
 
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
@@ -85,6 +85,8 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device, path)
     test_loss, test_accuracy = test(model, test_loader, test_split, device, criterion)
     print('************ TEST ACCURACY: ', test_accuracy)
+
+    exit()
     
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
