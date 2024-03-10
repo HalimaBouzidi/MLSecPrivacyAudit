@@ -85,9 +85,9 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device, path)
     test_loss, test_accuracy = test(model, test_loader, test_split, device, criterion)
     print('************ TEST ACCURACY: ', test_accuracy)
-
-    exit()
     
+    exit()
+
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
 

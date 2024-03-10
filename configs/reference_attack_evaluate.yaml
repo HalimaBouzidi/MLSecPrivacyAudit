@@ -10,18 +10,20 @@ attack:
   test_name: 'arbitary_test_4'
 
 data:
-  dataset: CIFAR10 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
+  dataset: CIFAR100 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
   in_channels: 3
   num_classes: 10
-  dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-10
+  dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-100
   batch_size: 64
   data_loader_workers_per_gpu: 4
   distributed: False
   augment: auto_augment_tf
 
 train:
-  model_name: transformer # choices: [cnn, alexnet, transformer, mobilenet]
-  width_multi: 1.0
+  model_name: searchable_mobilenet # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
+  width_multi: 0.5
+  depth_multi: 1.0
+  depth: 10
   epochs: 100
   optimizer: adam
   learning_rate: 0.01 

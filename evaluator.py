@@ -40,6 +40,10 @@ if __name__ == '__main__':
     model = get_model(configs)
     model.to(device)
 
+    model(torch.rand(1, 3, 32, 32).cuda())
+
+    exit()
+
     if configs['attack']['type'] == 'population':
         audit_results, infer_game, test_accuracy = population_attack(configs, model, train_dataset, test_dataset, device)
 
