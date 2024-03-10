@@ -1,6 +1,6 @@
 import argparse
 import random
-import torch, yaml
+import torch, yaml, csv
 import numpy as np
 
 from data.data_loader import build_datasets
@@ -21,6 +21,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--attack", type=str, default="population", help="Type of MIA attack", choices=["population", "reference", "shadow"])
     parser.add_argument("--plot", type=str, default="True", help="Wheter to visualize results", choices=["True", "False"])
+    parser.add_argument("--model", type=str, default="searchable_alexnet", help="Model to evaluate")
+    parser.add_argument("--width", type=float, default=1.0, help="Width expand ratio")
+    parser.add_argument("--depth", type=int, default=1, help="Number of model layers")
 
     args = parser.parse_args()
     cf = "./configs/"+args.attack+"_attack_evaluate.yaml"
@@ -28,6 +31,11 @@ if __name__ == '__main__':
     with open(cf, "rb") as f:
         configs = yaml.load(f, Loader=yaml.Loader)
 
+    configs['train']['model_name'] = args.model
+    configs['train']['width_multi'] = args.width
+    configs['train']['depth_multi'] = args.depth
+    configs['attack']['test_name'] = 'test_'+args.model+'_w'+str(args.width)+'_d'+str(args.depth)
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     seed_value = configs['run']['seed']
@@ -56,6 +64,9 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError(f"{configs['attack']['type']} is not implemented")
     
+    with open(configs['attack']['log_dir']+'summary_results.csv', 'a') as f:
+        writer = csv.writer(f, delimiter=',')
+        writer.writerow([configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], test_accuracy])
     
     if args.plot == 'True':
         

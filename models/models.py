@@ -188,13 +188,13 @@ def get_model(args):
 
     if args['train']['model_name'] == "searchable_transformer":
         return SearchableTransformer(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], \
-                                 depth=args['train']['depth'], width_multi=args['train']['width_multi'])
+                                 depth=args['train']['depth_multi'], width_multi=args['train']['width_multi'])
     elif args['train']['model_name'] == "searchable_alexnet":
         return SearchableAlexNet(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], \
-                                 depth=args['train']['depth'], width_ratio=args['train']['width_multi'])
+                                 depth=args['train']['depth_multi'], width_ratio=args['train']['width_multi'])
     elif args['train']['model_name'] == "searchable_resnet":
         return SearchableResNet(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], \
-                                 depth=args['train']['depth'], width_multiplier=args['train']['width_multi'])
+                                 depth=args['train']['depth_multi'], width_multiplier=args['train']['width_multi'])
     elif args['train']['model_name'] == "searchable_mobilenet":
         return SearchableMobileNet(in_channels=args['data']['in_channels'], num_classes=args['data']['num_classes'], \
                                  depth_mult=args['train']['depth_multi'], width_mult=args['train']['width_multi'])

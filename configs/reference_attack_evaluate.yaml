@@ -5,14 +5,14 @@ attack:
   hypo_test: 'linear_itp' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
   train_size: 5000 # for population and reference attacks
   test_size: 5000 # for population and reference attacks
-  n_ref_models: 5 # for shadow attack
+  n_ref_models: 5 # for number of reference models
   log_dir: '/home/hbouzidi/hbouzidi/MLSecPrivacyAudit/logs'
   test_name: 'arbitary_test_4'
 
 data:
   dataset: CIFAR100 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
   in_channels: 3
-  num_classes: 10
+  num_classes: 100
   dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-100
   batch_size: 64
   data_loader_workers_per_gpu: 4
@@ -20,10 +20,9 @@ data:
   augment: auto_augment_tf
 
 train:
-  model_name: searchable_mobilenet # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
-  width_multi: 0.5
-  depth_multi: 1.0
-  depth: 10
+  model_name: searchable_alexnet # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
+  width_multi: 1.0
+  depth_multi: 4
   epochs: 100
   optimizer: adam
   learning_rate: 0.01 
