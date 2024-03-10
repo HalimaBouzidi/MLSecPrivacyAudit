@@ -75,17 +75,19 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     train_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('train', '<default_input>')), \
                               torch.Tensor(datasets_list[0].get_feature('train', '<default_output>')))
     
-    test_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('train', '<default_input>')), \
-                              torch.Tensor(datasets_list[0].get_feature('train', '<default_output>')))
+    test_set = TensorDataset(torch.Tensor(datasets_list[0].get_feature('test', '<default_input>')), \
+                              torch.Tensor(datasets_list[0].get_feature('test', '<default_output>')))
     
     train_loader, test_loader = get_full_dataloader(args, train_set, test_set)
     
     criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
     orig_model = copy.deepcopy(model)
-    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, train_split, test_split, device, path)
-    test_loss, test_accuracy = test(model, test_loader, test_split, device, criterion)
+    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, device, path)
+    test_loss, test_accuracy = test(model, test_loader, device, criterion)
     print('************ TEST ACCURACY: ', test_accuracy)
     
+    exit()
+
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
 
@@ -95,8 +97,8 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
         ref_train_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')), \
                               torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_output>')))
     
-        ref_test_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_input>')), \
-                                torch.Tensor(datasets_list[model_idx].get_feature('train', '<default_output>')))
+        ref_test_set = TensorDataset(torch.Tensor(datasets_list[model_idx].get_feature('test', '<default_input>')), \
+                                torch.Tensor(datasets_list[model_idx].get_feature('test', '<default_output>')))
         
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
@@ -138,8 +140,8 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
         y = dataset.get_feature(split_name=f'train{model_idx:03d}', feature_name='<default_output>')
         ref_train_set = TensorDataset(torch.Tensor(x), torch.Tensor(y))
     
-        x = dataset.get_feature(split_name=f'train{model_idx:03d}', feature_name='<default_input>')
-        y = dataset.get_feature(split_name=f'train{model_idx:03d}', feature_name='<default_output>')
+        x = dataset.get_feature(split_name=f'test{model_idx:03d}', feature_name='<default_input>')
+        y = dataset.get_feature(split_name=f'test{model_idx:03d}', feature_name='<default_output>')
         ref_test_set = TensorDataset(torch.Tensor(x), torch.Tensor(y))
 
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)

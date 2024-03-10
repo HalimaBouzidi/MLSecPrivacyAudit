@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 import numpy as np
 from PIL import Image
 
-def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len_train, len_val, device, path):
+def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, device, path):
     
     if optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(),
@@ -23,7 +23,8 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
 
     model.to(device)
 
-    early_stopping = EarlyStopping(patience=20, verbose=False, path=path+'/checkpoint.pt')
+    early_stopping = EarlyStopping(patience=35, verbose=False, path=path+'/checkpoint.pt')
+    
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -43,7 +44,10 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
             running_loss += loss.item() * images.size(0)
 
         running_loss = 0.0
+        
         model.eval()
+
+        eval_len = 0
 
         for images, classes in val_loader:
             images = images.to(device)
@@ -53,8 +57,9 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
             loss = criterion(outputs, classes)
 
             running_loss += loss.item() * images.size(0)
+            eval_len += images.size(0)
 
-        val_loss = running_loss / len_val
+        val_loss = running_loss / eval_len
 
         early_stopping(val_loss, model)
         
@@ -65,7 +70,7 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, len
     return model
 
 
-def test(model, test_loader, len_test, device, criterion=None):
+def test(model, test_loader, device, criterion=None):
 
     model.eval()
     model.to(device)
@@ -73,10 +78,14 @@ def test(model, test_loader, len_test, device, criterion=None):
     running_loss = 0
     running_corrects = 0
 
+    eval_len = 0
+
     with torch.no_grad():
         for images, classes in test_loader:
             images = images.to(device)
             classes = classes.to(device)
+
+            eval_len += images.size(0)
 
             outputs = model(images)
             _, preds = torch.max(outputs, 1)
@@ -89,8 +98,8 @@ def test(model, test_loader, len_test, device, criterion=None):
             running_loss += loss * images.size(0)
             running_corrects += torch.sum(preds == classes.data).item()
 
-    eval_accuracy = running_corrects/len_test
-    eval_loss = running_loss/len_test
+    eval_accuracy = running_corrects/eval_len
+    eval_loss = running_loss/eval_len
 
     return eval_loss, eval_accuracy
 

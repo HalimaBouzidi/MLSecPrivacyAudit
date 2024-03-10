@@ -24,6 +24,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", type=str, default="searchable_alexnet", help="Model to evaluate")
     parser.add_argument("--width", type=float, default=1.0, help="Width expand ratio")
     parser.add_argument("--depth", type=int, default=1, help="Number of model layers")
+    parser.add_argument("--depth-multi", type=float, default=1.0, help="Number of model layers")
 
     args = parser.parse_args()
     cf = "./configs/"+args.attack+"_attack_evaluate.yaml"
@@ -33,8 +34,12 @@ if __name__ == '__main__':
 
     configs['train']['model_name'] = args.model
     configs['train']['width_multi'] = args.width
-    configs['train']['depth_multi'] = args.depth
-    configs['attack']['test_name'] = 'test_'+args.model+'_w'+str(args.width)+'_d'+str(args.depth)
+    if args.model == 'searchable_mobilenet':
+        configs['train']['depth_multi'] = args.depth_multi
+        configs['attack']['test_name'] = 'test_'+args.model+'_w'+str(args.width)+'_d'+str(args.depth_multi)
+    else:
+        configs['train']['depth_multi'] = args.depth
+        configs['attack']['test_name'] = 'test_'+args.model+'_w'+str(args.width)+'_d'+str(args.depth)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -47,10 +52,6 @@ if __name__ == '__main__':
 
     model = get_model(configs)
     model.to(device)
-
-    model(torch.rand(1, 3, 32, 32).cuda())
-
-    exit()
 
     if configs['attack']['type'] == 'population':
         audit_results, infer_game, test_accuracy = population_attack(configs, model, train_dataset, test_dataset, device)

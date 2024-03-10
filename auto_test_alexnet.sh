@@ -2,8 +2,10 @@
 
 model_name=searchable_alexnet
 
-widths=(0.25 0.5 1.75 1.0 1.25 1.5 1.75 2.0 2.25 2.5 2.75 3.0)
-depths=(2 3 4 5 6 7 8 9 10)
+#widths=(0.25 0.5 1.75 1.0 1.25 1.5 1.75 2.0 2.25 2.5)
+widths=(1.0)
+depths=(7)
+#depths=(2 3 4 5 6 7 8 9 10)
 
 for width in ${widths[@]}
 do 

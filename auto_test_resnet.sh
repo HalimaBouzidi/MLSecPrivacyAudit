@@ -1,10 +1,11 @@
 #!/bin/bash
 
-model_name=searchable_alexnet
+model_name=searchable_resnet
 
-#widths=(0.25 0.5 1.75 1.0 1.25 1.5 1.75 2.0 2.25 2.5 2.75 3.0)
-widths=(0.25)
-depths=(3)
+#widths=(0.25 0.5 1.75 1.0 1.25 1.5 1.75 2.0 2.25 2.5)
+widths=(1.0)
+depths=(18)
+#depths=(9 18 24 32 42 50 56)
 
 for width in ${widths[@]}
 do 
