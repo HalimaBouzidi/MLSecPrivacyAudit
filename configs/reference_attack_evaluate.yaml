@@ -3,9 +3,9 @@ attack:
   privacy_game: privacy_loss_model # choices: [privacy_loss_model, avg_privacy_loss_training_algo, privacy_loss_sample]
   signal: scaled_logits # choices: [loss, gradient, logits, scaled_logits]
   hypo_test: 'linear_itp' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
-  train_size: 5000 # for population and reference attacks
+  train_size: 10000 # for population and reference attacks
   test_size: 5000 # for population and reference attacks
-  n_ref_models: 10 # for number of reference models
+  n_ref_models: 5 # for number of reference models
   log_dir: '/home/hbouzidi/hbouzidi/MLSecPrivacyAudit/logs'
   test_name: 'arbitary_test_4'
 
@@ -14,7 +14,7 @@ data:
   in_channels: 3
   num_classes: 10
   dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-10
-  batch_size: 128
+  batch_size: 64
   data_loader_workers_per_gpu: 4
   distributed: False
   augment: auto_augment_tf
@@ -25,7 +25,7 @@ train:
   depth_multi: 4
   epochs: 100
   optimizer: adam
-  learning_rate: 0.01 
+  learning_rate: 0.001 
   weight_decay: 0.0001 
 
 run: 

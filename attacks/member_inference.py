@@ -38,8 +38,8 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     train_loader, test_loader = get_subset_dataloader(args, train_dataset, train_index, test_index)
     
     criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
-    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, len(train_index), len(test_index), device, path)
-    test_loss, test_accuracy = test(model, test_loader, len(test_index), device, criterion)
+    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, device, path)
+    test_loss, test_accuracy = test(model, test_loader, device, criterion)
     print('************ TEST ACCURACY: ', test_accuracy)
 
     ModuleValidator.fix(model)
@@ -85,8 +85,6 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, device, path)
     test_loss, test_accuracy = test(model, test_loader, device, criterion)
     print('************ TEST ACCURACY: ', test_accuracy)
-    
-    exit()
 
     ModuleValidator.fix(model)
     target_model = PytorchModelTensor(model_obj=model, loss_fn=criterion, device=device,batch_size=args['data']['batch_size'])
@@ -103,7 +101,7 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
         reference_model = train(reference_model, args['train']['epochs'], args['train']['optimizer'], criterion, \
-                                ref_train_loader, ref_test_loader, train_split, test_split, device, path)
+                                ref_train_loader, ref_test_loader, device, path)
         
         reference_models.append(PytorchModelTensor(model_obj=reference_model, loss_fn=criterion))
         
@@ -147,10 +145,10 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
         shadow_model = train(shadow_models[model_idx], args['train']['epochs'], args['train']['optimizer'], \
-                             criterion, ref_train_loader, ref_test_loader, split_size, split_size, device, path)
+                             criterion, ref_train_loader, ref_test_loader, device, path)
         
         if model_idx == 0:
-            test_loss, test_accuracy = test(shadow_model, ref_test_loader, split_size, device, criterion)
+            test_loss, test_accuracy = test(shadow_model, ref_test_loader, device, criterion)
             print('************ TEST ACCURACY: ', test_accuracy)
         
         trained_shadow_models.append(PytorchModelTensor(model_obj=shadow_model, loss_fn=criterion))

@@ -45,6 +45,7 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, dev
 
         running_loss = 0.0
         
+        """
         model.eval()
 
         eval_len = 0
@@ -66,6 +67,7 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, dev
         if early_stopping.early_stop:
             print("Early stopping at Epoch: {}".format(epoch))
             break
+        """
 
     return model
 
