@@ -1,9 +1,11 @@
 #!/bin/bash
 
+# Default for ResNet is (depth=9 | width=1.0)
+
 model_name=searchable_resnet
 
-widths=(0.25 0.5 1.75 1.0 1.25 1.5 1.75 2.0)
-depths=(9 18 34 50 56)
+widths=(1.0 1.25 1.5 1.75 2.0 2.25 2.5)
+depths=(9 15 20 26 32 38 44)
 
 for width in ${widths[@]}
 do 

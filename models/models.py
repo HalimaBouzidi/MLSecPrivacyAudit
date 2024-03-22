@@ -111,7 +111,7 @@ class SearchableResNet(nn.Module):
 class SearchableTransformer(nn.Module):
     def __init__(self, in_channels=3, num_classes=10, depth=8, width_multi=1.0):
         super(SearchableTransformer, self).__init__()        
-        width = int(32*width_multi)
+        width = int(64*width_multi)
         self.transformer = models.VisionTransformer(image_size=32, patch_size=4, num_layers=depth, \
                                 hidden_dim=width, mlp_dim=width, num_heads=8, num_classes=num_classes)
         self.transformer.conv_proj = nn.Conv2d(in_channels, width, kernel_size=(4, 4), stride=(4, 4))

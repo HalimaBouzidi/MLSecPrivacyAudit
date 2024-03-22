@@ -2,9 +2,11 @@ import argparse
 import random
 import torch, yaml, csv
 import numpy as np
+import torch.nn as nn
 
-from data.data_loader import build_datasets
+from data.data_loader import build_datasets, build_data_loader
 from models.models import get_model
+from attacks.utils import train, test
 from attacks.member_inference import population_attack, reference_attack, shadow_attack
 from analyzer.plot import * 
 from privacy_meter.audit_report import ROCCurveReport, SignalHistogramReport
@@ -48,10 +50,17 @@ if __name__ == '__main__':
 
     print('\n ******************************** START of THE SCRIPT **************************************************** \n')
 
-    train_dataset, test_dataset = build_datasets(configs)
-
     model = get_model(configs)
     model.to(device)
+
+    train_dataset, test_dataset = build_datasets(configs)
+
+    train_loader, test_loader, train_sampler = build_data_loader(configs)
+
+    criterion, path = nn.CrossEntropyLoss(), configs['run']['saved_models']
+    lr, w_decay = float(configs['train']['learning_rate']), float(configs['train']['weight_decay'])
+    model = train(model, configs['train']['epochs'], configs['train']['optimizer'], criterion, lr, w_decay, train_loader, test_loader, device, path)
+    test_loss, test_accuracy = test(model, test_loader, device, criterion)
 
     if configs['attack']['type'] == 'population':
         audit_results, infer_game, test_accuracy = population_attack(configs, model, train_dataset, test_dataset, device)
@@ -64,10 +73,16 @@ if __name__ == '__main__':
 
     else:
         raise NotImplementedError(f"{configs['attack']['type']} is not implemented")
-    
+
+    # Get the ROC_AUC:
+    mr = audit_results[0]
+    fpr = mr.fp / (mr.fp + mr.tn) 
+    tpr = mr.tp / (mr.tp + mr.fn) 
+    roc_auc = np.trapz(x=fpr, y=tpr)
+ 
     with open(configs['attack']['log_dir']+'summary_results.csv', 'a') as f:
         writer = csv.writer(f, delimiter=',')
-        writer.writerow([configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], test_accuracy])
+        writer.writerow([configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], test_accuracy, roc_auc])
     
     if args.plot == 'True':
         

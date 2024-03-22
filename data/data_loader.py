@@ -95,7 +95,7 @@ def build_default_CIFAR10_dataset(args):
         ])    
 
     non_train_transforms = transforms.Compose([
-        transforms.Resize(40),
+        transforms.Resize(32),
         transforms.CenterCrop(32),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
@@ -156,7 +156,7 @@ def build_default_CIFAR100_dataset(args):
         ])    
 
     non_train_transforms = transforms.Compose([
-        transforms.Resize(40),
+        transforms.Resize(32),
         transforms.CenterCrop(32),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])

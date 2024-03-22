@@ -38,7 +38,8 @@ def population_attack(args, model, train_dataset, test_dataset, device):
     train_loader, test_loader = get_subset_dataloader(args, train_dataset, train_index, test_index)
     
     criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
-    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, device, path)
+    lr, w_decay = float(args['train']['learning_rate']), float(args['train']['weight_decay'])
+    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, lr, w_decay, train_loader, test_loader, device, path)
     test_loss, test_accuracy = test(model, test_loader, device, criterion)
     print('************ TEST ACCURACY: ', test_accuracy)
 
@@ -80,9 +81,11 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     
     train_loader, test_loader = get_full_dataloader(args, train_set, test_set)
     
-    criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
     orig_model = copy.deepcopy(model)
-    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, train_loader, test_loader, device, path)
+    
+    criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
+    lr, w_decay = float(args['train']['learning_rate']), float(args['train']['weight_decay'])
+    model = train(model, args['train']['epochs'], args['train']['optimizer'], criterion, lr, w_decay, train_loader, test_loader, device, path)
     test_loss, test_accuracy = test(model, test_loader, device, criterion)
     print('************ TEST ACCURACY: ', test_accuracy)
 
@@ -100,7 +103,7 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
         
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
-        reference_model = train(reference_model, args['train']['epochs'], args['train']['optimizer'], criterion, \
+        reference_model = train(reference_model, args['train']['epochs'], args['train']['optimizer'], criterion, lr, w_decay, \
                                 ref_train_loader, ref_test_loader, device, path)
         
         reference_models.append(PytorchModelTensor(model_obj=reference_model, loss_fn=criterion))
@@ -119,6 +122,8 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     audit_results = audit_obj.run()[0]
     infer_game = infer_games[args['attack']['privacy_game']]
 
+    audit_results, infer_game = None, None
+
     return audit_results, infer_game, test_accuracy
 
 
@@ -132,7 +137,9 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
     datasets_list = prepare_dataset_shadow(dataset, n_shadow_models, split_size)
         
     criterion, path = nn.CrossEntropyLoss(), args['run']['saved_models']
+    lr, w_decay = float(args['train']['learning_rate']), float(args['train']['weight_decay'])
     trained_shadow_models = []
+    
     for model_idx in range(len(shadow_models)):
         x = dataset.get_feature(split_name=f'train{model_idx:03d}', feature_name='<default_input>')
         y = dataset.get_feature(split_name=f'train{model_idx:03d}', feature_name='<default_output>')
@@ -145,7 +152,7 @@ def shadow_attack(args, model, train_dataset, test_dataset, device):
         ref_train_loader, ref_test_loader = get_full_dataloader(args, ref_train_set, ref_test_set)
         
         shadow_model = train(shadow_models[model_idx], args['train']['epochs'], args['train']['optimizer'], \
-                             criterion, ref_train_loader, ref_test_loader, device, path)
+                             criterion, lr, w_decay, ref_train_loader, ref_test_loader, device, path)
         
         if model_idx == 0:
             test_loss, test_accuracy = test(shadow_model, ref_test_loader, device, criterion)

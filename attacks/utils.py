@@ -6,16 +6,16 @@ from torch.utils.data import Dataset
 import numpy as np
 from PIL import Image
 
-def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, device, path):
+def train(model, num_epochs, optimizer, criterion, lr, w_decay, train_loader, val_loader, device, path):
     
     if optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(),
-                          lr=0.001,
+                          lr=lr,
                           momentum=0.9,
-                          weight_decay=1e4)
+                          weight_decay=w_decay)
         
     elif optimizer == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
+        optimizer = optim.Adam(model.parameters(), lr=lr)
 
     else:
         raise NotImplementedError
@@ -45,7 +45,6 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, dev
 
         running_loss = 0.0
         
-        """
         model.eval()
 
         eval_len = 0
@@ -67,10 +66,8 @@ def train(model, num_epochs, optimizer, criterion, train_loader, val_loader, dev
         if early_stopping.early_stop:
             print("Early stopping at Epoch: {}".format(epoch))
             break
-        """
 
     return model
-
 
 def test(model, test_loader, device, criterion=None):
 

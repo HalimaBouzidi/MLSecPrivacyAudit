@@ -14,16 +14,16 @@ data:
   in_channels: 3
   num_classes: 10
   dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-10
-  batch_size: 64
+  batch_size: 256
   data_loader_workers_per_gpu: 4
   distributed: False
   augment: auto_augment_tf
 
 train:
-  model_name: searchable_alexnet # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
+  model_name: searchable_transformer # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
   width_multi: 1.0
   depth_multi: 4
-  epochs: 100
+  epochs: 50
   optimizer: adam
   learning_rate: 0.001 
   weight_decay: 0.0001 

@@ -1,9 +1,11 @@
 #!/bin/bash
 
+# Default for AlexNet is (depth=1.2 | width=1.0)
+
 model_name=searchable_mobilenet
 
-widths=(0.25 0.5 1.75 1.0 1.25 1.5 1.75 2.0)
-depths=(0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4)
+widths=(1.0 1.25 1.5 1.75 2.0 2.25 2.5)
+depths=(1.2 1.4 1.6 1.8 2.0 2.2 2.4)
 
 for width in ${widths[@]}
 do 
