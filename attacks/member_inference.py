@@ -122,8 +122,6 @@ def reference_attack(args, model, train_dataset, test_dataset, device):
     audit_results = audit_obj.run()[0]
     infer_game = infer_games[args['attack']['privacy_game']]
 
-    audit_results, infer_game = None, None
-
     return audit_results, infer_game, test_accuracy
 
 

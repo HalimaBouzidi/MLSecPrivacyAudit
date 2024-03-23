@@ -55,12 +55,13 @@ if __name__ == '__main__':
 
     train_dataset, test_dataset = build_datasets(configs)
 
-    train_loader, test_loader, train_sampler = build_data_loader(configs)
-
-    criterion, path = nn.CrossEntropyLoss(), configs['run']['saved_models']
-    lr, w_decay = float(configs['train']['learning_rate']), float(configs['train']['weight_decay'])
-    model = train(model, configs['train']['epochs'], configs['train']['optimizer'], criterion, lr, w_decay, train_loader, test_loader, device, path)
-    test_loss, test_accuracy = test(model, test_loader, device, criterion)
+    train_model = False
+    if train_model:
+        train_loader, test_loader, train_sampler = build_data_loader(configs)
+        criterion, path = nn.CrossEntropyLoss(), configs['run']['saved_models']
+        lr, w_decay = float(configs['train']['learning_rate']), float(configs['train']['weight_decay'])
+        model = train(model, configs['train']['epochs'], configs['train']['optimizer'], criterion, lr, w_decay, train_loader, test_loader, device, path)
+        test_loss, test_accuracy = test(model, test_loader, device, criterion)
 
     if configs['attack']['type'] == 'population':
         audit_results, infer_game, test_accuracy = population_attack(configs, model, train_dataset, test_dataset, device)
@@ -74,32 +75,25 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError(f"{configs['attack']['type']} is not implemented")
 
-    # Get the ROC_AUC:
-    mr = audit_results[0]
-    fpr = mr.fp / (mr.fp + mr.tn) 
-    tpr = mr.tp / (mr.tp + mr.fn) 
-    roc_auc = np.trapz(x=fpr, y=tpr)
- 
+    logdir = configs['attack']['log_dir']+'/'+args.attack+'_'+configs['attack']['test_name']
+    
+    ROCCurveReport.generate_report(metric_result=audit_results,
+                                    inference_game_type=infer_game, show=True, filename = logdir+'/roc_curve.png')
+
+    if args.attack == 'shadow':            
+        SignalHistogramReport.generate_report(metric_result=audit_results[0][0], inference_game_type=infer_game,
+                                            show=True, filename = logdir+'/signal_histogram.png')
+        
+    else:
+        SignalHistogramReport.generate_report(metric_result=audit_results[0], inference_game_type=infer_game,
+                                            show=True, filename = logdir+'/signal_histogram.png')
+        
+        roc_auc = plot_log_scale_roc_curve(audit_results, logdir, logdir + "/log_scale_roc_curve.png")
+
+            
     with open(configs['attack']['log_dir']+'summary_results.csv', 'a') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow([configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], test_accuracy, roc_auc])
-    
-    if args.plot == 'True':
-        
-        logdir = configs['attack']['log_dir']+'/'+args.attack+'_'+configs['attack']['test_name']
-        
-        ROCCurveReport.generate_report(metric_result=audit_results,
-                                       inference_game_type=infer_game, show=True, filename = logdir+'/roc_curve.png')
-
-        if args.attack == 'shadow':            
-            SignalHistogramReport.generate_report(metric_result=audit_results[0][0], inference_game_type=infer_game,
-                                              show=True, filename = logdir+'/signal_histogram.png')
-            
-        else:
-            SignalHistogramReport.generate_report(metric_result=audit_results[0], inference_game_type=infer_game,
-                                                show=True, filename = logdir+'/signal_histogram.png')
-            
-            plot_log_scale_roc_curve(audit_results, logdir, logdir + "/log_scale_roc_curve.png")
 
 
         

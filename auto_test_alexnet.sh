@@ -5,6 +5,7 @@
 model_name=searchable_alexnet
 
 widths=(1.0 1.25 1.5 1.75 2.0 2.25 2.5)
+widths=(1.0)
 depths=(5 6 7 8 9 10)
 
 for width in ${widths[@]}

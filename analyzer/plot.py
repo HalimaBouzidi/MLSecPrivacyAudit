@@ -39,3 +39,5 @@ def plot_log_scale_roc_curve(audit_results, logdir, filename):
             )
     if filename:
         plt.savefig(filename)
+
+    return roc_auc

@@ -5,7 +5,8 @@
 model_name=searchable_transformer
 
 widths=(1.0 1.25 1.5 1.75 2.0 2.25 2.5)
-depths=(10 12 14 16 18)
+widths=(1.0)
+depths=(10 12 14 16 18 20)
 
 for width in ${widths[@]}
 do 
