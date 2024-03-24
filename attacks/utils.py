@@ -20,11 +20,8 @@ def train(model, num_epochs, optimizer, criterion, lr, w_decay, train_loader, va
     else:
         raise NotImplementedError
 
+    model.to(device)  
 
-    model.to(device)
-
-    early_stopping = EarlyStopping(patience=35, verbose=False, path=path+'/checkpoint.pt')
-    
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -45,28 +42,6 @@ def train(model, num_epochs, optimizer, criterion, lr, w_decay, train_loader, va
 
         running_loss = 0.0
         
-        model.eval()
-
-        eval_len = 0
-
-        for images, classes in val_loader:
-            images = images.to(device)
-            classes = classes.to(device)
-            
-            outputs = model(images)
-            loss = criterion(outputs, classes)
-
-            running_loss += loss.item() * images.size(0)
-            eval_len += images.size(0)
-
-        val_loss = running_loss / eval_len
-
-        early_stopping(val_loss, model)
-        
-        if early_stopping.early_stop:
-            print("Early stopping at Epoch: {}".format(epoch))
-            break
-
     return model
 
 def test(model, test_loader, device, criterion=None):

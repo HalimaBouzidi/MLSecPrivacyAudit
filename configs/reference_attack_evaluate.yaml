@@ -20,7 +20,7 @@ data:
   augment: auto_augment_tf
 
 train:
-  model_name: searchable_alexnet # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
+  model_name: searchable_resnet # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
   width_multi: 1.0
   depth_multi: 5
   epochs: 50

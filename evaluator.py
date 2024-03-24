@@ -5,7 +5,7 @@ import numpy as np
 import torch.nn as nn
 
 from data.data_loader import build_datasets, build_data_loader
-from models.models import get_model
+from models.basics import get_model
 from attacks.utils import train, test
 from attacks.member_inference import population_attack, reference_attack, shadow_attack
 from analyzer.plot import * 
@@ -51,6 +51,12 @@ if __name__ == '__main__':
     print('\n ******************************** START of THE SCRIPT **************************************************** \n')
 
     model = get_model(configs)
+
+    print(model)
+
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Number of parameters in the model: {num_params}")
+
     model.to(device)
 
     train_dataset, test_dataset = build_datasets(configs)

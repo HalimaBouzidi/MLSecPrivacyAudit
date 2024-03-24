@@ -1,0 +1,22 @@
+data:
+  dataset: CIFAR10 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
+  in_channels: 3
+  num_classes: 10
+  dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-10
+  batch_size: 64
+  data_loader_workers_per_gpu: 4
+  distributed: False
+  augment: auto_augment_tf
+
+train:
+  model_name: simple_cnn # choices: [simple_cnn, depth_cnn, bottle_cnn, dynamic_cnn, resnet_cnn, asymetric_cnn]
+  width_multi: 1.0
+  depth_multi: 5
+  epochs: 100
+  optimizer: adam
+  learning_rate: 0.001 
+  weight_decay: 0.0001 
+
+run: 
+  seed: 1234 
+  saved_models: ./saved_models
