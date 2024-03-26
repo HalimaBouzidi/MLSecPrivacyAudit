@@ -90,7 +90,7 @@ def get_target_reference(train_dataset, test_dataset):
     
     train_data, train_targets = get_dataset_full(train_dataset)
     test_data, test_targets = get_dataset_full(test_dataset)
-    
+
     target_dataset = Dataset( data_dict={"train": {"x": train_data, "y": train_targets}, 
                                          "test": {"x": test_data, "y": test_targets},},
                                          default_input="x", default_output="y",)

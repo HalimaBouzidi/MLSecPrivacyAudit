@@ -1,15 +1,7 @@
 import torch
-import torch.nn.functional as F
 from torch import nn
+import torch.nn.functional as F
 from torchvision import models
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 class SearchableAlexNet(nn.Module):
     def __init__(self, in_channels=3, num_classes=100, depth=3, width_ratio=1.0):

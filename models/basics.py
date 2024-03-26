@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torchvision import models
 import torch.nn.functional as F
 
 class SimpleCNN(nn.Module):
@@ -35,10 +36,6 @@ class SimpleCNN(nn.Module):
         x = self.fc2(x)
         return x
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 def DepthwiseSeparableConv(inp, oup, stride):
     return nn.Sequential(
         nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
@@ -73,7 +70,6 @@ class DepthCNN(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
-
 
 class BottleneckConv(nn.Module):
     def __init__(self, in_channels, mid_channels, out_channels, stride=1):
@@ -232,25 +228,37 @@ class AsymmetricCNN(nn.Module):
         x = self.fc2(x)
         return x
 
+class SimpleViT(nn.Module):
+    def __init__(self, in_channels=3, width_expand=1.0, num_classes=10, depth=3):
+        super(SimpleViT, self).__init__()        
+        width = int(128*width_expand)
+        self.transformer = models.VisionTransformer(image_size=32, patch_size=4, num_layers=depth, \
+                                hidden_dim=width, mlp_dim=width, num_heads=8, num_classes=num_classes)
+        self.transformer.conv_proj = nn.Conv2d(in_channels, width, kernel_size=(4, 4), stride=(4, 4))
+
+    def forward(self, x):
+        return self.transformer(x)
+
 def get_model(args):
 
     if args['train']['model_name'] == "simple_cnn":
-        return SimpleCNN(num_classes=args['data']['num_classes'])
+        return SimpleCNN(width_expand=args['train']['width_multi'], num_classes=args['data']['num_classes'])
     elif args['train']['model_name'] == "depth_cnn":
-        return DepthCNN(num_classes=args['data']['num_classes'])
+        return DepthCNN(width_expand=args['train']['width_multi'], num_classes=args['data']['num_classes'])
     elif args['train']['model_name'] == "bottle_cnn":
-        return BottleCNN(num_classes=args['data']['num_classes'])
+        return BottleCNN(width_expand=args['train']['width_multi'], num_classes=args['data']['num_classes'])
     elif args['train']['model_name'] == "resnet_cnn":
-        return SimpleResNet(num_classes=args['data']['num_classes'])
+        return SimpleResNet(width_expand=args['train']['width_multi'], num_classes=args['data']['num_classes'])
     elif args['train']['model_name'] == "asymetric_cnn":
-        return AsymmetricCNN(num_classes=args['data']['num_classes'])
+        return AsymmetricCNN(width_expand=args['train']['width_multi'], num_classes=args['data']['num_classes'])
+    elif args['train']['model_name'] == "simple_vit":
+        return SimpleViT(width_expand=args['train']['width_multi'], num_classes=args['data']['num_classes'])
     else:
         raise NotImplementedError(f"{args['train']['model_name']} is not implemented")
-
 
 if __name__ == '__main__':
     
     widths = [0.25, 0.5, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0]
     for width in widths:
-        model = AsymmetricCNN(width_expand=width, num_classes=10)
+        model = SimpleViT(width_expand=width, num_classes=10)
         print(model(torch.rand(1, 3, 32, 32)).size())

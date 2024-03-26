@@ -3,25 +3,26 @@ attack:
   privacy_game: privacy_loss_model # choices: [privacy_loss_model, avg_privacy_loss_training_algo, privacy_loss_sample]
   signal: loss # choices: [loss, gradient, logits, scaled_logits]
   hypo_test: 'linear_itp' # choices: [direct, linear_itp, logit_rescale, gaussian, min_linear_gaussian]
-  split_size: 5000 # for shadow attack
+  split_size: 8000 # for shadow attack
   n_shadow_models: 5 # for shadow attack
-  log_dir: '/home/erastus/Desktop/Postdoc_projects/MLSecPrivacyAudit/logs'
+  log_dir: '/home/hbouzidi/hbouzidi/MLSecPrivacyAudit/logs'
   test_name: 'arbitary_test'
 
 data:
   dataset: CIFAR10 # choices: [MNIST, CIFAR10, CIFAR100, TINY-IMAGENET, IMAGENET]
   in_channels: 3
   num_classes: 10
-  dataset_dir: /home/erastus/Desktop/Postdoc_projects/datasets/cifar10
+  dataset_dir: /home/hbouzidi/hbouzidi/datasets/cifar-10
   batch_size: 64
   data_loader_workers_per_gpu: 4
   distributed: False
   augment: auto_augment_tf
 
 train:
-  model_name: cnn # choices: [cnn, alexnet, transformer, mobilenet]
+  model_name: searchable_resnet # choices: [searchable_alexnet, searchable_transformer, searchable_mobilenet, searchable_resnet]
   width_multi: 1.0
-  epochs: 10
+  depth_multi: 5
+  epochs: 100
   optimizer: adam
   learning_rate: 0.001 
   weight_decay: 0.0001 

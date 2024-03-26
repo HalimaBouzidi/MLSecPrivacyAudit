@@ -1,5 +1,5 @@
 import argparse
-import random
+import random, copy
 import torch, yaml, csv
 import numpy as np
 import torch.nn as nn
@@ -52,31 +52,28 @@ if __name__ == '__main__':
 
     model = get_model(configs)
 
-    print(model)
-
-    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Number of parameters in the model: {num_params}")
-
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)    
     model.to(device)
 
     train_dataset, test_dataset = build_datasets(configs)
 
-    train_model = False
-    if train_model:
-        train_loader, test_loader, train_sampler = build_data_loader(configs)
-        criterion, path = nn.CrossEntropyLoss(), configs['run']['saved_models']
-        lr, w_decay = float(configs['train']['learning_rate']), float(configs['train']['weight_decay'])
-        model = train(model, configs['train']['epochs'], configs['train']['optimizer'], criterion, lr, w_decay, train_loader, test_loader, device, path)
-        test_loss, test_accuracy = test(model, test_loader, device, criterion)
+    # train_model = copy.deepcopy(model)
+    # train_loader, test_loader, train_sampler = build_data_loader(configs)
+    # criterion, path = nn.CrossEntropyLoss(), configs['run']['saved_models']
+    # lr, w_decay = float(configs['train']['learning_rate']), float(configs['train']['weight_decay'])
+    # train_model = train(train_model, configs['train']['epochs'], configs['train']['optimizer'], criterion, lr, w_decay, train_loader, test_loader, device, path)
+    # train_loss, train_accuracy = test(train_model, train_loader, device, criterion)
+    # test_loss, test_accuracy = test(train_model, test_loader, device, criterion)
+    # print(f"Number of parameters in the model: {num_params} || Testset Accuracy {test_accuracy}")
 
     if configs['attack']['type'] == 'population':
-        audit_results, infer_game, test_accuracy = population_attack(configs, model, train_dataset, test_dataset, device)
+        audit_results, infer_game, _ = population_attack(configs, model, train_dataset, test_dataset, device)
 
     elif configs['attack']['type'] == 'reference':
-        audit_results, infer_game, test_accuracy = reference_attack(configs, model, train_dataset, test_dataset, device)
+        audit_results, infer_game, _ = reference_attack(configs, model, train_dataset, test_dataset, device)
 
     elif configs['attack']['type'] == 'shadow':
-        audit_results, infer_game, test_accuracy = shadow_attack(configs, model, train_dataset, test_dataset, device)
+        audit_results, infer_game, _ = shadow_attack(configs, model, train_dataset, test_dataset, device)
 
     else:
         raise NotImplementedError(f"{configs['attack']['type']} is not implemented")
@@ -89,7 +86,7 @@ if __name__ == '__main__':
     if args.attack == 'shadow':            
         SignalHistogramReport.generate_report(metric_result=audit_results[0][0], inference_game_type=infer_game,
                                             show=True, filename = logdir+'/signal_histogram.png')
-        
+        roc_auc = audit_results[0][0].roc_auc        
     else:
         SignalHistogramReport.generate_report(metric_result=audit_results[0], inference_game_type=infer_game,
                                             show=True, filename = logdir+'/signal_histogram.png')
@@ -97,9 +94,11 @@ if __name__ == '__main__':
         roc_auc = plot_log_scale_roc_curve(audit_results, logdir, logdir + "/log_scale_roc_curve.png")
 
             
-    with open(configs['attack']['log_dir']+'summary_results.csv', 'a') as f:
+    train_loss, train_accuracy, test_loss, test_accuracy = 0, 0, 0, 0
+    with open('./summary_results.csv', 'a') as f:
         writer = csv.writer(f, delimiter=',')
-        writer.writerow([configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], test_accuracy, roc_auc])
+        writer.writerow([configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], \
+                         num_params, train_loss, train_accuracy, test_loss, test_accuracy, roc_auc])
 
 
         
