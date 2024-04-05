@@ -2,9 +2,10 @@
 
 # Default for Transformer is (depth=10 | width=1.0)
 
-model_name=depth_cnn
+model_name=simple_vit
 
-widths=(0.25 0.5 0.75 1.0 1.25 1.5 1.75 2.0 2.25 2.5)
+widths=(0.25 0.5 0.75 1.0 1.25 1.5 1.75 2.0)
+#widths=(2 4 6 8 12 16 24)
 #depths=(10 12 14 16 18 20)
 depth=1
 

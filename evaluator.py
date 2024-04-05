@@ -97,7 +97,7 @@ if __name__ == '__main__':
     train_loss, train_accuracy, test_loss, test_accuracy = 0, 0, 0, 0
     with open('./summary_results.csv', 'a') as f:
         writer = csv.writer(f, delimiter=',')
-        writer.writerow([configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], \
+        writer.writerow([args.attack, configs['train']['model_name'], configs['train']['width_multi'], configs['train']['depth_multi'], \
                          num_params, train_loss, train_accuracy, test_loss, test_accuracy, roc_auc])
 
 

@@ -2,9 +2,9 @@
 
 # Default for AlexNet is (depth=1.2 | width=1.0)
 
-model_name=bottle_cnn
+model_name=depth_cnn
 
-widths=(0.25 0.5 0.75 1.0 1.25 1.5 1.75 2.0 2.25 2.5)
+widths=(0.25 0.5 0.75 1.0 1.25 1.5 1.75 2.0)
 #depths=(1.0 1.2 1.4 1.6 1.8 2.0)
 depth=1
 
